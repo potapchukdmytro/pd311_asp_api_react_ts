@@ -19,8 +19,7 @@ namespace pd311_web_api.Controllers
         public async Task<IActionResult> CreateAsync(CreateManufactureDto dto)
         {
             var result = await _manufactureService.CreateAsync(dto);
-
-            return Ok(result);
+            return CreateActionResult(result);
         }
 
         [HttpPut]
@@ -34,6 +33,11 @@ namespace pd311_web_api.Controllers
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync(string? id)
         {
+            if (id == null)
+            {
+                return BadRequest("Id обов'язкове");
+            }
+
             if(!ValidateId(id, out string error))
             {
                 return BadRequest(error);
@@ -48,12 +52,6 @@ namespace pd311_web_api.Controllers
         {
             var response = await _manufactureService.GetAllAsync();
             return CreateActionResult(response);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAsync()
-        {
-            return Ok();
         }
     }
 }

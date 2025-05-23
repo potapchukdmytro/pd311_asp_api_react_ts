@@ -16,7 +16,7 @@ namespace pd311_web_api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateAsync(CreateCarDto dto)
+        public async Task<IActionResult> CreateAsync([FromForm] CreateCarDto dto)
         {
             var response = await _carService.CreateAsync(dto);
             return CreateActionResult(response);

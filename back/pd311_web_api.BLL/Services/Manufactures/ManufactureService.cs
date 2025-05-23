@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pd311_web_api.BLL.DTOs.Manufactures;
 using pd311_web_api.BLL.Services.Image;
+using pd311_web_api.BLL.Services.Storage;
 using pd311_web_api.DAL;
 using pd311_web_api.DAL.Entities;
 using pd311_web_api.DAL.Repositories.Manufactures;
@@ -16,36 +17,40 @@ namespace pd311_web_api.BLL.Services.Manufactures
         private readonly IManufactureRepository _manufactureRepository;
         private readonly AppDbContext _context;
         private readonly ILogger<ManufactureService> _logger;
+        private readonly IStorageService _storageService;
 
-        public ManufactureService(IMapper mapper, AppDbContext context, IImageService imageService, IManufactureRepository manufactureRepository, ILogger<ManufactureService> logger)
+        public ManufactureService(IMapper mapper, AppDbContext context, IImageService imageService, IManufactureRepository manufactureRepository, ILogger<ManufactureService> logger, IStorageService storageService)
         {
             _mapper = mapper;
             _context = context;
             _imageService = imageService;
             _manufactureRepository = manufactureRepository;
             _logger = logger;
+            _storageService = storageService;
         }
 
-        public async Task<bool> CreateAsync(CreateManufactureDto dto)
+        public async Task<ServiceResponse> CreateAsync(CreateManufactureDto dto)
         {
+            if(!await IsUniqueNameAsync(dto.Name))
+            {
+                return new ServiceResponse($"Виробник з назвою {dto.Name} вже існує");
+            }
+
             var entity = _mapper.Map<Manufacture>(dto);
-            string? imageName = null;
 
             if(dto.Image != null)
             {
-                _imageService.CreateImagesDirectory(Settings.ManufacturesImagesPath);
-
-                imageName = await _imageService.SaveImageAsync(dto.Image, Settings.ManufacturesImagesPath);
-                if(imageName != null)
-                {
-                    imageName = Path.Combine(Settings.ManufacturesImagesPath, imageName);
-                }
+                entity.Image = await _storageService.UploadImageAsync(dto.Image, Settings.ManufacturesImagesPath);
             }
 
-            entity.Image = imageName;
             var result = await _manufactureRepository.CreateAsync(entity);
 
-            return result;
+            if(!result)
+            {
+                return new ServiceResponse("Не вдалося додати виробника");
+            }
+
+            return new ServiceResponse($"Виробник '{dto.Name}' успішно доданий", true);
         }
 
         public async Task<bool> DeleteAsync(string id)
@@ -122,6 +127,11 @@ namespace pd311_web_api.BLL.Services.Manufactures
             _context.Update(entity);
             var result = await _context.SaveChangesAsync();
             return result != 0;
+        }
+
+        private async Task<bool> IsUniqueNameAsync(string name)
+        {
+            return await _manufactureRepository.GetByNameAsync(name) == null;
         }
     }
 }
