@@ -61,6 +61,20 @@ namespace pd311_web_api.BLL.Services.Storage
             return await UploadFileAsync(image, ImagesContainer, path);
         }
 
+        public async Task<List<string>> UploadImagesAsync(IEnumerable<IFormFile> images, string path)
+        {
+            List<string> names = new List<string>();
+            foreach (var image in images) 
+            {
+                var name = await UploadImageAsync(image, path);
+                if (name != null)
+                {
+                    names.Add(name);
+                }
+            }
+            return names;
+        }
+
         private string GetFileExtension(string contentType)
         {
             var types = contentType.Split('/');

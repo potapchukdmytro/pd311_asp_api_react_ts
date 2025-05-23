@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using pd311_web_api.BLL.DTOs.Car;
 using pd311_web_api.BLL.Services.Image;
+using pd311_web_api.BLL.Services.Storage;
 using pd311_web_api.DAL.Entities;
 using pd311_web_api.DAL.Repositories.Cars;
 using pd311_web_api.DAL.Repositories.Manufactures;
@@ -12,15 +14,15 @@ namespace pd311_web_api.BLL.Services.Cars
     {
         private readonly ICarRepository _carRepository;
         private readonly IManufactureRepository _manufactureRepository;
-        private readonly IImageService _imageService;
+        private readonly IStorageService _storageService;
         private readonly IMapper _mapper;
 
-        public CarService(ICarRepository carRepository, IMapper mapper, IManufactureRepository manufactureRepository, IImageService imageService)
+        public CarService(ICarRepository carRepository, IMapper mapper, IManufactureRepository manufactureRepository, IStorageService storageService)
         {
             _carRepository = carRepository;
             _mapper = mapper;
             _manufactureRepository = manufactureRepository;
-            _imageService = imageService;
+            _storageService = storageService;
         }
 
         public async Task<ServiceResponse> CreateAsync(CreateCarDto dto)
@@ -35,10 +37,7 @@ namespace pd311_web_api.BLL.Services.Cars
 
             if(dto.Images.Count() > 0)
             {
-                string imagesPath = Path.Combine(Settings.CarsImagesPath, entity.Id);
-                _imageService.CreateImagesDirectory(imagesPath);
-                var images = await _imageService.SaveCarImagesAsync(dto.Images, imagesPath);
-                entity.Images = images;
+                entity.Images = await SaveImagesAsync(dto.Images, entity.Id);
             }
 
             var result = await _carRepository.CreateAsync(entity);
@@ -48,7 +47,7 @@ namespace pd311_web_api.BLL.Services.Cars
                 return new ServiceResponse("Не вдалося зберегти автомобіль");
             }
 
-            return new ServiceResponse($"Автомобіль '{entity.Brand} {entity.Model}' збережено", true);
+            return new ServiceResponse($"Автомобіль '{entity.Brand} {entity.Model}' додано", true);
         }
 
         public async Task<ServiceResponse> GetAllAsync(int page, int pageSize, string? manufacture)
@@ -76,6 +75,26 @@ namespace pd311_web_api.BLL.Services.Cars
             };
 
             return new ServiceResponse("Автомобілі отримано", true, listDto);
+        }
+
+        private async Task<List<CarImage>> SaveImagesAsync(List<IFormFile> images, string carId)
+        {
+            List<CarImage> carImages = [];
+
+            var result = await _storageService.UploadImagesAsync(images, Path.Combine(Settings.CarsImagesPath, carId));
+            foreach (string imagePath in result)
+            {
+                int index = imagePath.LastIndexOf('/');
+                index = index == -1 ? imagePath.LastIndexOf('\\') : index;
+
+                var carImage = new CarImage
+                {
+                    Path = imagePath,
+                    Name = imagePath.Substring(index + 1)
+                };
+                carImages.Add(carImage);
+            }
+            return carImages;
         }
     }
 }
