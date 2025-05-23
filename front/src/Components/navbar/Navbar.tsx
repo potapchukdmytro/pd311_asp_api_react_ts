@@ -29,6 +29,13 @@ const Navbar: React.FC = () => {
             command() {
                navigate('/users')
             },
+        },
+        {
+            label: 'Cars',
+            icon: 'pi pi-search',
+            command() {
+               navigate('/cars')
+            },
         }
     ];
 

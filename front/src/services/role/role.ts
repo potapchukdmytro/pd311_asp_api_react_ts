@@ -1,10 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { ServiceResponse } from "../../types";
 import type { Role } from "./types";
+import { env } from "../../env";
 
 export const roleApi = createApi({
     reducerPath: "roleApi",
-    baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_API_URL }),
+    baseQuery: fetchBaseQuery({ baseUrl: env.apiUrl }),
     tagTypes: ["Role"],
     endpoints: (builder) => ({
         getRoles: builder.query<ServiceResponse<Role[]>, void>({
