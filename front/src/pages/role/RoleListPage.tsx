@@ -111,7 +111,7 @@ const RoleListPage: React.FC = () => {
                 <ProgressSpinner />
             ) : (
                 !isError &&
-                data?.payload !== null ? (
+                data?.payload ? (
                     <>
                         <Toast ref={toast} />
                         <ContextMenu
